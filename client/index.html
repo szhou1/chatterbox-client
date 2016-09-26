@@ -27,7 +27,7 @@
     <div id="main">
       <h1>chatterbox</h1>
       <!-- Your HTML goes here! -->
-      <select class='roomselector'></select>
+      <select id='roomSelect' class='roomselector' onchange='app.switchRooms(this.value)'></select>
     </div>
     <div id="chats"></div>
   </body>

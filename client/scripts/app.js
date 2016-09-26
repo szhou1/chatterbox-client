@@ -34,23 +34,32 @@ var app = {
       }
     }); },
   
+  sendMessage: function(username, roomname, text) {
+    app.send({
+      username: username,
+      text: text,
+      roomname: roomname
+    });
+  },
+  
   clearMessages: function() {
     $('#chats').empty();
   },
   
   renderMessage: function(message) {
-    console.log(message);
+    // console.log(message);
     var $message = $('<div>', {'class': 'chat'});
-    $message.text(message.updatedAt + ' ' + message.text);
-    $('#chats').append($message);
+    var $friendlink = $('<a>', {'onclick': 'console.log(1)'} );
+    //var $userNameButton = $('<button>', )
+    $message.append($friendlink);
+    $message.text(message.username + message.text);
+    $('#chats').append('<div class="chat"><a class="friendbutton" onclick="console.log(1)">' + message.username + ': </a> ' + message.text + '</div>');
   },
 
   renderRoom: function(roomname) {
-    app.send({
-      username: null,
-      text: null,
-      roomname: roomname
-    });
+    var $room = $('<option>', {'class': 'room', 'value': roomname});
+    $room.text(roomname);
+    $('#roomSelect').append($room);
   },
 
   renderAllMessages: function(roomName) {
@@ -65,25 +74,24 @@ var app = {
   },
 
   getRooms: function() {
-    console.log($('.roomselector'));
-    var url = 'https://api.parse.com/1/classes/messages';
+    // console.log($('.roomselector'));
+    var url = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
     app.fetch(url, function(data) {
       var roomNameArray = data.results.map(function(msgObj) {
         return msgObj.roomname;
       });
       var uniqRoomNames = _.uniq(roomNameArray);
-      console.log(uniqRoomNames);
-      $('.roomselector').empty();
-
+      // console.log(uniqRoomNames);
+      $('#roomSelect').empty();
+      $('#roomSelect').append('<option>Select Room</option>');
       uniqRoomNames.forEach(function(room) {
-        var $room = $('<option>', {'class': 'room'});
-        $room.text(room);
-        $('.roomselector').append($room);
+        app.renderRoom(room);
       });
     });
   },
 
   switchRooms: function(roomName) {
+    console.log(roomName);
     app.clearMessages();
     app.renderAllMessages(roomName);
   }
@@ -92,5 +100,5 @@ var app = {
 
 app.getRooms();
 app.switchRooms('lobby');
-// app.renderRoom('cool_hangout_spot');
-app.getRooms();
+// app.renderRoom('tornadoShelter');
+//app.getRooms();
