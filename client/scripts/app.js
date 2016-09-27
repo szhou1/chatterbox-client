@@ -2,13 +2,21 @@
 var app = {
   currentRoom: null,
   friendsObj: {},
+  latestTimestamp: 0,
+  newMsgCounter: 0,
 
   init: function() {
     app.getRooms();
-    app.switchRooms("Select Room");
+    app.switchRooms("Create New Room");
+
+    setInterval(function() {
+      app.checkForNewMessages();
+      app.renderNewMsgBanner();
+      //app.getRooms(); 
+    }, 3000);
   },
   
-  send: function(message) {
+  send: function(message, cb) {
     $.ajax({
   // This is the url you should use to communicate with the parse API server.
       url: 'https://api.parse.com/1/classes/messages',
@@ -17,6 +25,8 @@ var app = {
       contentType: 'application/json',
       success: function (data) {
         console.log('chatterbox: Message sent');
+        //app.renderAllMessages(app.currentRoom);
+        cb();
       },
       error: function (data) {
         // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -41,28 +51,34 @@ var app = {
       }
     }); },
   
-  sendMessage: function(username, roomname, text) {
+  sendMessage: function(username, roomname, text, cb) {
     app.send({
       username: username,
       text: text,
       roomname: roomname
-    });
+    },cb);
   },
   
   submitMessage: function() {
     var roomname = app.currentRoom;
     var txt = $('.input').val();
     var user = (window.location.search).split('=')[1];
-    if(roomname !== 'Select Room'){
-      app.sendMessage(user, roomname, txt);
-      app.renderAllMessages(roomname);
+    if (roomname !== 'Create New Room') {
+      app.sendMessage(user, roomname, txt, function() {
+        app.renderAllMessages(app.currentRoom);
+      });
+      
     } else {
       var newRoomName = window.prompt('Enter a new room name, adventurer!');
-      if(newRoomName){
+      if (newRoomName) {
         app.currentRoom = newRoomName;
-        app.sendMessage("ChatterBox", newRoomName, "Awesome job, " + user + "! You've created a new room!");
-        app.renderAllMessages(roomname);      
-        app.switchRooms();        
+        app.sendMessage(user, newRoomName, txt, function() {
+          //app.switchRooms(app.currentRoom);
+          app.getRooms();
+        });
+        // app.sendMessage("ChatterBox", newRoomName, "Awesome job, " + user + "! You've created a new room!");
+        //app.renderAllMessages(roomname);      
+        
       }
     }
   },
@@ -91,6 +107,8 @@ var app = {
     var $room = $('<option>', {'class': 'room', 'value': roomname});
     $room.text(roomname);
     $('#roomSelect').append($room);
+    // $('.roomselector').val(roomname);
+    // app.switchRooms(roomname);
   },
 
   renderAllMessages: function(roomName) {
@@ -98,12 +116,16 @@ var app = {
     app.clearMessages();
     var getAllMsgsUrl = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
     app.fetch(getAllMsgsUrl, function(data) {
+      app.latestTimestamp = data.results[0].updatedAt;
       data.results.forEach(function(message) {
         if (message.roomname === roomName) {
           app.renderMessage(message);
         }
       });
     });
+    app.newMsgCounter = 0;
+    $('#banner').empty();
+    $('title').text('chatterbox');
   },
 
   getRooms: function() {
@@ -116,10 +138,11 @@ var app = {
       var uniqRoomNames = _.uniq(roomNameArray);
       // console.log(uniqRoomNames);
       $('#roomSelect').empty();
-      $('#roomSelect').append('<option>Select Room</option>');
+      $('#roomSelect').append('<option>Create New Room</option>');
       uniqRoomNames.forEach(function(room) {
         app.renderRoom(room);
       });
+      app.switchRooms(app.currentRoom);
     });
   },
 
@@ -128,6 +151,9 @@ var app = {
     app.clearMessages();
     app.renderAllMessages(roomName);
     app.currentRoom = roomName;
+    // app.getRooms();
+    // $('.roomselector').val(roomName);
+
   },
 
   handleUsernameClick: function(friend) {
@@ -138,6 +164,39 @@ var app = {
 
     app.renderAllMessages();
   },
+
+  checkForNewMessages: function() {
+    // console.log("timestamp: " + app.latestTimestamp);
+    var query = 'where={"updatedAt":{"$gt":{"__type":"Date","iso":"' + app.latestTimestamp + '"}}}';
+    var url = 'https://api.parse.com/1/classes/messages?' + query;
+    // console.log(url);
+    // var url = 'https://api.parse.com/1/classes/messages?updatedAt>' + app.latestTimestamp;
+    var context = this;
+    //app.newMsgCounter = 0;
+    app.fetch(url, function(data) {
+      console.log(data);
+      // app.newMsgCounter = data.results;
+      // var filteredMsgs = [];
+      var newMsgsInRoom = data.results.filter(function(msg) {
+        console.log(msg.roomname, app.currentRoom, app.newMsgCounter);
+        if (msg.roomname === app.currentRoom) {
+          return true;
+        }
+      });
+      app.newMsgCounter = newMsgsInRoom.length;
+    });
+    console.log('new msgs: ' + app.newMsgCounter);
+  },
+
+  renderNewMsgBanner: function() {
+    if (app.newMsgCounter > 0) {
+      $('#banner').empty();
+      var $banner = $('<div>', {'class' : 'banner', 'onclick': 'app.renderAllMessages("' + app.currentRoom + '")'});
+      $banner.text(app.newMsgCounter + ' New Messages!');
+      $('#banner').append($banner);
+      $('title').text('chatterbox (' + app.newMsgCounter + ')');
+    }
+  }
 
 };
 

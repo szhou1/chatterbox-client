@@ -93,3 +93,9 @@ form input[type=text] {
     color: blue;
 }
 
+.banner {
+    background-color: red;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
