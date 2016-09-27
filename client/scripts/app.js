@@ -57,7 +57,13 @@ var app = {
       app.sendMessage(user, roomname, txt);
       app.renderAllMessages(roomname);
     } else {
-      alert('Please first select a room!');
+      var newRoomName = window.prompt('Enter a new room name, adventurer!');
+      if(newRoomName){
+        app.currentRoom = newRoomName;
+        app.sendMessage("ChatterBox", newRoomName, "Awesome job, " + user + "! You've created a new room!");
+        app.renderAllMessages(roomname);      
+        app.switchRooms();        
+      }
     }
   },
 
@@ -66,8 +72,11 @@ var app = {
   },
   
   renderMessage: function(message) {
-    var text = encodeURI(message.text);
-    var username = encodeURI(message.username);
+    var text = message.text;
+    var username = message.username;
+
+    text = text.replace(/\</g, '\\<').replace(/\>/g, '\\>');
+
     var $chat = $('<div class="chat"><a class="username" onclick="app.handleUsernameClick(\'' + username + '\');">' 
       + username + ' </a> ' 
       + text + '</div>');
