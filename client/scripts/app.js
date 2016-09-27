@@ -1,6 +1,13 @@
 // YOUR CODE HERE:
 var app = {
-  init: function() {},
+  currentRoom: null,
+  friendsObj: {},
+
+  init: function() {
+    app.getRooms();
+    app.switchRooms("Select Room");
+  },
+  
   send: function(message) {
     $.ajax({
   // This is the url you should use to communicate with the parse API server.
@@ -42,18 +49,33 @@ var app = {
     });
   },
   
+  submitMessage: function() {
+    var roomname = app.currentRoom;
+    var txt = $('.input').val();
+    var user = (window.location.search).split('=')[1];
+    if(roomname !== 'Select Room'){
+      app.sendMessage(user, roomname, txt);
+      app.renderAllMessages(roomname);
+    } else {
+      alert('Please first select a room!');
+    }
+  },
+
   clearMessages: function() {
     $('#chats').empty();
   },
   
   renderMessage: function(message) {
-    // console.log(message);
-    var $message = $('<div>', {'class': 'chat'});
-    var $friendlink = $('<a>', {'onclick': 'console.log(1)'} );
-    //var $userNameButton = $('<button>', )
-    $message.append($friendlink);
-    $message.text(message.username + message.text);
-    $('#chats').append('<div class="chat"><a class="friendbutton" onclick="console.log(1)">' + message.username + ': </a> ' + message.text + '</div>');
+    var text = encodeURI(message.text);
+    var username = encodeURI(message.username);
+    var $chat = $('<div class="chat"><a class="username" onclick="app.handleUsernameClick(\'' + username + '\');">' 
+      + username + ' </a> ' 
+      + text + '</div>');
+
+    if (app.friendsObj[username]) {
+      $chat.attr('class', 'friend');
+    }
+    $('#chats').append($chat);
   },
 
   renderRoom: function(roomname) {
@@ -63,6 +85,8 @@ var app = {
   },
 
   renderAllMessages: function(roomName) {
+    roomName = roomName || app.currentRoom;
+    app.clearMessages();
     var getAllMsgsUrl = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
     app.fetch(getAllMsgsUrl, function(data) {
       data.results.forEach(function(message) {
@@ -94,11 +118,20 @@ var app = {
     console.log(roomName);
     app.clearMessages();
     app.renderAllMessages(roomName);
-  }
+    app.currentRoom = roomName;
+  },
+
+  handleUsernameClick: function(friend) {
+    console.log("adding: " + friend);
+    if (!app.friendsObj[friend]) { 
+      app.friendsObj[friend] = true;
+    }
+
+    app.renderAllMessages();
+  },
 
 };
 
-app.getRooms();
-app.switchRooms('lobby');
-// app.renderRoom('tornadoShelter');
-//app.getRooms();
+
+
+app.init();
