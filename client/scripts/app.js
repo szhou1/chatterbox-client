@@ -7,7 +7,7 @@ var app = {
 
   init: function() {
     app.getRooms();
-    app.switchRooms("Create New Room");
+    app.switchRooms('Create New Room');
 
     setInterval(function() {
       app.checkForNewMessages();
@@ -18,7 +18,6 @@ var app = {
   
   send: function(message, cb) {
     $.ajax({
-  // This is the url you should use to communicate with the parse API server.
       url: 'https://api.parse.com/1/classes/messages',
       type: 'POST',
       data: JSON.stringify(message),
@@ -29,24 +28,20 @@ var app = {
         cb();
       },
       error: function (data) {
-        // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
         console.error('chatterbox: Failed to send message', data);
       }
     }); },
   
-  fetch: function(url, cb) {
+  fetch: function(params, cb) {
     $.ajax({
-  // This is the url you should use to communicate with the parse API server.
-      url: url,
+      url: 'https://api.parse.com/1/classes/messages',
       type: 'GET',
-      //data: JSON.stringify(message),
+      data: params,
       contentType: 'application/json',
       success: function (data) {
         cb(data);
-
       },
       error: function (data) {
-        // See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
         console.error('chatterbox: Failed to get data');
       }
     }); },
@@ -56,7 +51,7 @@ var app = {
       username: username,
       text: text,
       roomname: roomname
-    },cb);
+    }, cb);
   },
   
   submitMessage: function() {
@@ -73,12 +68,8 @@ var app = {
       if (newRoomName) {
         app.currentRoom = newRoomName;
         app.sendMessage(user, newRoomName, txt, function() {
-          //app.switchRooms(app.currentRoom);
           app.getRooms();
         });
-        // app.sendMessage("ChatterBox", newRoomName, "Awesome job, " + user + "! You've created a new room!");
-        //app.renderAllMessages(roomname);      
-        
       }
     }
   },
@@ -114,13 +105,14 @@ var app = {
   renderAllMessages: function(roomName) {
     roomName = roomName || app.currentRoom;
     app.clearMessages();
-    var getAllMsgsUrl = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
-    app.fetch(getAllMsgsUrl, function(data) {
+    // var getAllMsgsUrl = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
+    
+    app.fetch({order: '-updatedAt', where: {roomname: {$in: [roomName]}}}, function(data) {
       app.latestTimestamp = data.results[0].updatedAt;
       data.results.forEach(function(message) {
-        if (message.roomname === roomName) {
+        // if (message.roomname === roomName) {
           app.renderMessage(message);
-        }
+        // }
       });
     });
     app.newMsgCounter = 0;
@@ -130,8 +122,8 @@ var app = {
 
   getRooms: function() {
     // console.log($('.roomselector'));
-    var url = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
-    app.fetch(url, function(data) {
+    // var url = 'https://api.parse.com/1/classes/messages?order=-updatedAt';
+    app.fetch({order: '-updatedAt'}, function(data) {
       var roomNameArray = data.results.map(function(msgObj) {
         return msgObj.roomname;
       });
@@ -151,13 +143,10 @@ var app = {
     app.clearMessages();
     app.renderAllMessages(roomName);
     app.currentRoom = roomName;
-    // app.getRooms();
-    // $('.roomselector').val(roomName);
-
   },
 
   handleUsernameClick: function(friend) {
-    console.log("adding: " + friend);
+    console.log('adding: ' + friend);
     if (!app.friendsObj[friend]) { 
       app.friendsObj[friend] = true;
     }
@@ -166,17 +155,9 @@ var app = {
   },
 
   checkForNewMessages: function() {
-    // console.log("timestamp: " + app.latestTimestamp);
-    var query = 'where={"updatedAt":{"$gt":{"__type":"Date","iso":"' + app.latestTimestamp + '"}}}';
-    var url = 'https://api.parse.com/1/classes/messages?' + query;
-    // console.log(url);
-    // var url = 'https://api.parse.com/1/classes/messages?updatedAt>' + app.latestTimestamp;
     var context = this;
-    //app.newMsgCounter = 0;
-    app.fetch(url, function(data) {
+    app.fetch({where: {updatedAt: {$gt: {__type: 'Date', iso: '' + app.latestTimestamp + ''}}}}, function(data) {
       console.log(data);
-      // app.newMsgCounter = data.results;
-      // var filteredMsgs = [];
       var newMsgsInRoom = data.results.filter(function(msg) {
         console.log(msg.roomname, app.currentRoom, app.newMsgCounter);
         if (msg.roomname === app.currentRoom) {
@@ -191,7 +172,7 @@ var app = {
   renderNewMsgBanner: function() {
     if (app.newMsgCounter > 0) {
       $('#banner').empty();
-      var $banner = $('<div>', {'class' : 'banner', 'onclick': 'app.renderAllMessages("' + app.currentRoom + '")'});
+      var $banner = $('<div>', {'class': 'banner', 'onclick': 'app.renderAllMessages("' + app.currentRoom + '")'});
       $banner.text(app.newMsgCounter + ' New Messages!');
       $('#banner').append($banner);
       $('title').text('chatterbox (' + app.newMsgCounter + ')');
@@ -199,7 +180,5 @@ var app = {
   }
 
 };
-
-
 
 app.init();
